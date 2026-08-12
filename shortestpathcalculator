@@ -1,0 +1,108 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <limits>
+#include <unordered_map>
+#include <string>
+using namespace std;
+
+struct Edge {
+    int to;
+    int weight;
+};
+
+struct Node {
+    int city;
+    int dist;
+    bool operator>(const Node& other) const {
+        return dist > other.dist;
+    }
+};
+
+void dijkstra(const unordered_map<string,int>& cityIndex,
+              const vector<string>& cities,
+              const vector<vector<Edge>>& graph,
+              const string& startCity,
+              const string& endCity) {
+    int n = cities.size();
+    vector<int> dist(n, numeric_limits<int>::max());
+    vector<int> parent(n, -1);
+
+    int start = cityIndex.at(startCity);
+    int end   = cityIndex.at(endCity);
+
+    priority_queue<Node, vector<Node>, greater<Node>> pq;
+    dist[start] = 0;
+    pq.push({start,0});
+
+    while(!pq.empty()) {
+        int u = pq.top().city;
+        int d = pq.top().dist;
+        pq.pop();
+
+        if(d > dist[u]) continue;
+
+        for(const auto& edge : graph[u]) {
+            int v = edge.to;
+            int w = edge.weight;
+            if(dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                parent[v] = u;
+                pq.push({v, dist[v]});
+            }
+        }
+    }
+
+    if(dist[end] == numeric_limits<int>::max()) {
+        cout << "No path found between " << startCity << " and " << endCity << "\n";
+        return;
+    }
+
+    cout << "Shortest distance: " << dist[end] << "\nPath: ";
+    vector<string> path;
+    for(int v=end; v!=-1; v=parent[v]) {
+        path.push_back(cities[v]);
+    }
+    for(int i=path.size()-1; i>=0; i--) {
+        cout << path[i];
+        if(i>0) cout << " -> ";
+    }
+    cout << "\n";
+}
+
+int main() {
+    // Define imaginary cities
+    vector<string> cities = {"Alpha","Beta","Gamma","Delta","Epsilon"};
+    unordered_map<string,int> cityIndex;
+    for(int i=0;i<cities.size();i++) cityIndex[cities[i]] = i;
+
+    // Graph adjacency list
+    vector<vector<Edge>> graph(cities.size());
+    auto addEdge = [&](string u, string v, int w) {
+        graph[cityIndex[u]].push_back({cityIndex[v], w});
+        graph[cityIndex[v]].push_back({cityIndex[u], w}); // undirected
+    };
+
+    // Add some connections
+    addEdge("Alpha","Beta",4);
+    addEdge("Alpha","Gamma",2);
+    addEdge("Beta","Gamma",1);
+    addEdge("Beta","Delta",5);
+    addEdge("Gamma","Delta",8);
+    addEdge("Gamma","Epsilon",10);
+    addEdge("Delta","Epsilon",2);
+
+    string startCity, endCity;
+    cout << "Enter start city: ";
+    cin >> startCity;
+    cout << "Enter destination city: ";
+    cin >> endCity;
+
+    if(cityIndex.find(startCity)==cityIndex.end() || cityIndex.find(endCity)==cityIndex.end()) {
+        cout << "Invalid city name!\n";
+        return 0;
+    }
+
+    dijkstra(cityIndex, cities, graph, startCity, endCity);
+    return 0;
+}
